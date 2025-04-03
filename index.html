@@ -17,6 +17,17 @@
             padding: 20px;
             background-color: #f4f4f4;
         }
+
+        /* Make the accordion title look clickable */
+        .accordion-button a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .accordion-button a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 
@@ -63,7 +74,7 @@
                     card.innerHTML = `
                         <h2 class="accordion-header">
                             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
-                                <strong>${index + 1}. <a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></strong>
+                                <a href="${item.link}" target="_blank" onclick="event.stopPropagation();">${index + 1}. ${item.title}</a>
                             </button>
                         </h2>
                         <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
