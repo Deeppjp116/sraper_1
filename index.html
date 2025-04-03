@@ -5,6 +5,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Educational Website Scraper</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SheetJS (xlsx) for Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -12,68 +17,93 @@
             padding: 20px;
             background-color: #f4f4f4;
         }
-
-        h2 {
-            color: #333;
-        }
-
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-
-        li {
-            background: #fff;
-            margin: 10px 0;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-        }
-
-        a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
     </style>
 </head>
 
 <body>
 
-    <h2>Educational Websites</h2>
-    <ul id="resultsList">
-        <li>Loading results...</li>
-    </ul>
+    <div class="container mt-4">
+        <h2 class="text-center">Educational Websites with Emails</h2>
+
+        <!-- Download Excel Button -->
+        <div class="text-center my-3">
+            <button class="btn btn-success" onclick="downloadExcel()">Download as Excel</button>
+        </div>
+
+        <!-- Bootstrap Accordion for Results -->
+        <div class="accordion mt-3" id="resultsAccordion"></div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        let fetchedData = []; // Store results for Excel export
+
         async function fetchResults() {
             try {
-                const response = await fetch('/results'); // Fetch from backend
+                const response = await fetch("http://localhost:3000/results");
                 const data = await response.json();
-                const list = document.getElementById('resultsList');
+                fetchedData = data; // Store data for Excel
 
-                list.innerHTML = ""; // Clear previous results
+                const accordion = document.getElementById("resultsAccordion");
+                accordion.innerHTML = ""; // Clear previous results
 
                 if (data.length === 0) {
-                    list.innerHTML = "<li>No results found.</li>";
+                    accordion.innerHTML = "<p class='text-center'>No results found.</p>";
                     return;
                 }
 
                 data.forEach((item, index) => {
-                    const listItem = document.createElement("li");
-                    listItem.innerHTML = `<strong>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></strong>`;
-                    list.appendChild(listItem);
+                    const collapseId = `collapse${index}`;
+
+                    const card = document.createElement("div");
+                    card.classList.add("accordion-item");
+
+                    card.innerHTML = `
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="false">
+                                <strong>${index + 1}. <a href="${item.link}" target="_blank" class="text-decoration-none">${item.title}</a></strong>
+                            </button>
+                        </h2>
+                        <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+                            <div class="accordion-body">
+                                <strong>Emails:</strong> 
+                                <ul class="list-group">
+                                    ${item.emails.map(email => `<li class="list-group-item">${email}</li>`).join("")}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+
+                    accordion.appendChild(card);
                 });
             } catch (error) {
                 console.error("Error fetching results:", error);
             }
         }
 
-        fetchResults(); // Load results when page loads
+        function downloadExcel() {
+            if (fetchedData.length === 0) {
+                alert("No data available to download!");
+                return;
+            }
+
+            const excelData = fetchedData.map(item => ({
+                "University Name": item.title,
+                "Website URL": item.link,
+                "Emails": item.emails.join(", ") // Convert array to string
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Educational Websites");
+
+            XLSX.writeFile(workbook, "Educational_Websites.xlsx");
+        }
+
+        fetchResults();
+        setInterval(fetchResults, 5000); // Fetch new results every 5 seconds
     </script>
 
 </body>
