@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Website Scraper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+
+        h2 {
+            color: #333;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        li {
+            background: #fff;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+        }
+
+        a {
+            text-decoration: none;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>Educational Websites</h2>
+    <ul id="resultsList">
+        <li>Loading results...</li>
+    </ul>
+
+    <script>
+        async function fetchResults() {
+            try {
+                const response = await fetch('/results'); // Fetch from backend
+                const data = await response.json();
+                const list = document.getElementById('resultsList');
+
+                list.innerHTML = ""; // Clear previous results
+
+                if (data.length === 0) {
+                    list.innerHTML = "<li>No results found.</li>";
+                    return;
+                }
+
+                data.forEach((item, index) => {
+                    const listItem = document.createElement("li");
+                    listItem.innerHTML = `<strong>${index + 1}. <a href="${item.link}" target="_blank">${item.title}</a></strong>`;
+                    list.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error("Error fetching results:", error);
+            }
+        }
+
+        fetchResults(); // Load results when page loads
+    </script>
+
+</body>
+
+</html>
