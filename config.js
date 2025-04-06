@@ -7,6 +7,7 @@ const config = {
   SCRAPE_INNER_PAGES: true, // Enable/disable inner page scraping
   MAX_DEPTH: 1, // How deep to go (0 = just the main page, 1 = main page + linked pages)
   MAX_INNER_PAGES: 5, // Maximum number of inner pages to scrape per main page
+  STOP_ON_FIRST_EMAIL: true, // Stop scraping after finding the first email
 
   // Domain options and their corresponding countries
   DOMAIN_OPTIONS: {

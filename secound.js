@@ -2,7 +2,7 @@ const express = require('express');
 const { getJson } = require('serpapi');
 const cors = require('cors');
 const axios = require('axios');
-const cheerio = require('cheerio');
+const scrapeEmailsFromPage = require('./scrapeEmailsWithPuppeteer');
 
 const app = express();
 app.use(cors());

@@ -59,6 +59,61 @@ const fetchResults = () => {
   );
 };
 
+// Function to extract internal links from a webpage
+const extractInternalLinks = ($, baseUrl) => {
+  try {
+    const baseUrlObj = new URL(baseUrl);
+    const links = new Set();
+
+    // Find all anchor tags and extract href attributes
+    $('a').each((_, element) => {
+      const href = $(element).attr('href');
+      if (!href) return;
+
+      try {
+        // Skip mailto, javascript, and anchor links
+        if (
+          href.startsWith('mailto:') ||
+          href.startsWith('javascript:') ||
+          href.startsWith('#') ||
+          href.startsWith('tel:')
+        ) {
+          return;
+        }
+
+        // Handle relative and absolute URLs
+        let fullUrl;
+
+        if (href.startsWith('http')) {
+          // Absolute URL
+          fullUrl = new URL(href);
+
+          // Only include links from the same domain
+          if (fullUrl.hostname !== baseUrlObj.hostname) {
+            return;
+          }
+        } else if (href.startsWith('/')) {
+          // Root-relative URL
+          fullUrl = new URL(href, baseUrlObj.origin);
+        } else {
+          // Relative URL
+          fullUrl = new URL(href, baseUrl);
+        }
+
+        // Add to our set of links (Set automatically handles duplicates)
+        links.add(fullUrl.href);
+      } catch (error) {
+        // Invalid URL, skip it
+      }
+    });
+
+    return Array.from(links);
+  } catch (error) {
+    console.error(`Error extracting links from ${baseUrl}:`, error.message);
+    return [];
+  }
+};
+
 // Function to scrape emails from a given website and its inner pages
 const scrapeEmails = async (
   url,
@@ -90,13 +145,32 @@ const scrapeEmails = async (
     const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
     const emails = htmlContent.match(emailRegex) || [];
 
+    // Also check for mailto links
+    $('a[href^="mailto:"]').each((_, element) => {
+      const mailtoHref = $(element).attr('href');
+      if (mailtoHref) {
+        const email = mailtoHref.replace('mailto:', '').split('?')[0].trim();
+        if (email && email.match(emailRegex)) {
+          emails.push(email);
+        }
+      }
+    });
+
     // Add emails from current page
     allEmails = [...emails];
+
+    // If we found emails and we're configured to stop on first email, return early
+    if (config.STOP_ON_FIRST_EMAIL && allEmails.length > 0) {
+      console.log(
+        `Found ${allEmails.length} emails on ${url}, stopping as configured.`
+      );
+      return [...new Set(allEmails)]; // Return unique emails
+    }
 
     // If we haven't reached max depth, get internal links and scrape them
     if (depth < maxDepth) {
       // Get internal links
-      const internalLinks = await extractInternalLinks(url);
+      const internalLinks = extractInternalLinks($, url);
 
       // Limit the number of internal pages to scrape to avoid excessive requests
       const pagesToScrape = internalLinks.slice(0, config.MAX_INNER_PAGES || 5);
@@ -104,6 +178,11 @@ const scrapeEmails = async (
       // Scrape each internal page
       for (const innerUrl of pagesToScrape) {
         if (!state.isRunning) break; // Stop if scraping was paused/stopped
+
+        // If we found emails and we're configured to stop on first email, break the loop
+        if (config.STOP_ON_FIRST_EMAIL && allEmails.length > 0) {
+          break;
+        }
 
         // Add a small delay between requests to be respectful
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -114,7 +193,13 @@ const scrapeEmails = async (
           maxDepth,
           visitedUrls
         );
+
         allEmails = [...allEmails, ...innerEmails];
+
+        // If we found emails after checking an inner page and we're configured to stop, break the loop
+        if (config.STOP_ON_FIRST_EMAIL && allEmails.length > 0) {
+          break;
+        }
       }
     }
 
@@ -125,61 +210,6 @@ const scrapeEmails = async (
     return uniqueEmails;
   } catch (error) {
     console.error(`Error scraping ${url}:`, error.message);
-    return allEmails;
-  }
-};
-
-// Function to extract internal links from a webpage
-const extractInternalLinks = async (url) => {
-  try {
-    const baseUrl = new URL(url).origin;
-    const response = await axios.get(url, {
-      timeout: 5000,
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      },
-    });
-
-    const $ = cheerio.load(response.data);
-    const links = new Set();
-
-    // Find all anchor tags and extract href attributes
-    $('a').each((_, element) => {
-      const href = $(element).attr('href');
-      if (href) {
-        try {
-          // Handle relative and absolute URLs
-          let fullUrl;
-          if (href.startsWith('http')) {
-            fullUrl = new URL(href);
-            // Only include links from the same domain
-            if (!fullUrl.hostname.includes(state.currentDomain.slice(1))) {
-              return;
-            }
-          } else if (href.startsWith('/')) {
-            fullUrl = new URL(href, baseUrl);
-          } else if (
-            !href.startsWith('#') &&
-            !href.startsWith('javascript:') &&
-            !href.startsWith('mailto:')
-          ) {
-            fullUrl = new URL(href, url);
-          } else {
-            return;
-          }
-
-          // Add to our set of links (Set automatically handles duplicates)
-          links.add(fullUrl.href);
-        } catch (error) {
-          // Invalid URL, skip it
-        }
-      }
-    });
-
-    return Array.from(links);
-  } catch (error) {
-    console.error(`Error extracting links from ${url}:`, error.message);
     return [];
   }
 };

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Website Email Analysis</title>
+</head>
+<body>
+    <h1>Email Extraction Analysis</h1>
+    <p><strong>Total Websites:</strong> {{ total }}</p>
+    <p><strong>Websites with at least 1 Email:</strong> {{ success }}</p>
+    <p><strong>Websites with 0 Emails:</strong> {{ fail }}</p>
+
+    <img src="{{ url_for('static', filename='email_analysis_pie_chart.png') }}" alt="Pie Chart">
+
+    <br><br>
+    <a href="/scrape"><button>Back to Results</button></a>
+</body>
+</html>
+

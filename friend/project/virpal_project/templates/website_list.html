@@ -1,0 +1,8 @@
+{% for site in websites %}
+<li data-index="{{ loop.index0 + loaded_count }}">
+
+    <strong>{{ site.name }}</strong><br>
+    <a href="{{ site.link }}" target="_blank">{{ site.link }}</a><br>
+    <span class="emails">Fetching emails...</span>
+</li>
+{% endfor %}
